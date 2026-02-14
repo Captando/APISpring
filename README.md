@@ -1,30 +1,26 @@
-# API de Mercado (Spring Boot 3) - Product API v2
+# API de Mercado (Spring Boot 3) - Java App (sem web frontend)
 
-API REST para catálogo de produtos com foco em uso real: filtros, paginação, controle de estoque e erro padronizado.
+Projeto completo de API REST com uma **interface Java local (CLI)** para operar o mercado.
 
-## Sumário
+Autor: **Captando**  
+Tecnologia: Java 17 + Spring Boot 3 + Spring Data JPA + H2 + springdoc-openapi
 
-- [Arquitetura](#arquitetura)
-- [Como rodar](#como-rodar)
-- [Interface local (frontend próprio)](#interface-local-frontend-próprio)
-- [Contratos](#contratos)
-- [Endpoints](#endpoints)
-- [Erros](#erros)
-- [Tags git](#tags-git)
-
-## Arquitetura
-
-Pacotes:
+## Estrutura de pacotes
 
 ```text
 src/main/java/com/Captando/demo/
   DemoApplication.java
+  client/
+    MarketConsoleApp.java
   controller/
     ProductController.java
   dto/
     ProductRequest.java
     ProductResponse.java
     StockAdjustmentRequest.java
+  exception/
+    ApiError.java
+    GlobalExceptionHandler.java
   model/
     Product.java
   repository/
@@ -34,115 +30,105 @@ src/main/java/com/Captando/demo/
     ProductServiceImpl.java
     ProductNotFoundException.java
     InsufficientStockException.java
-  exception/
-    ApiError.java
-    GlobalExceptionHandler.java
-
-src/main/resources/
-  application.properties
-  static/
-    index.html
-    styles.css
-    app.js
 ```
 
-## Como rodar
+## Como rodar a API
 
 ```bash
 cd /Users/victorpcsca/Documents/APISpring
 mvn spring-boot:run
 ```
 
-URLs úteis:
+A API fica em `http://localhost:8080`.
 
-- API base: `http://localhost:8080`
-- OpenAPI: `http://localhost:8080/v3/api-docs`
-- Swagger: `http://localhost:8080/swagger-ui.html`
-- Console H2: `http://localhost:8080/h2-console`
-- Interface do app: `http://localhost:8080/`
+## Como rodar a app Java (interface local)
 
-## Interface local (frontend próprio)
+Em outro terminal:
 
-A interface foi incluída no próprio projeto, sem dependências externas (offline):
-
-- Acesso: `http://localhost:8080/`
-
-Recursos disponíveis:
-
-- Listagem de produtos com paginação
-- Filtro por nome, categoria, preço e ativo
-- Cadastro e edição de produto
-- Exclusão de produto
-- Ajuste de estoque rápido (`+1` / `-1`) via endpoint dedicado
-- Feedback visual para sucesso/erro
-
-Como funciona:
-
-- O frontend consome a API `GET /products`, `POST /products`, `PUT /products/{id}`, `DELETE /products/{id}`, `PATCH /products/{id}/stock`
-- Todo o CSS/JS é carregado de `src/main/resources/static`
-
-## Contratos
-
-`ProductRequest`:
-
-```json
-{
-  "name": "Arroz",
-  "description": "Arroz branco 5kg",
-  "price": 29.9,
-  "category": "Mercearia",
-  "stockQuantity": 30,
-  "active": true
-}
+```bash
+cd /Users/victorpcsca/Documents/APISpring
+mvn exec:java -Dexec.mainClass=com.Captando.demo.client.MarketConsoleApp
 ```
 
-`ProductResponse` inclui os mesmos campos + `id`.
+Também pode customizar a URL da API:
 
-`StockAdjustmentRequest`:
-
-```json
-{ "delta": 5 }
+```bash
+mvn exec:java -Dapi.base.url=http://localhost:8080 -Dexec.mainClass=com.Captando.demo.client.MarketConsoleApp
 ```
-
-Pode ser positivo (entrada) ou negativo (baixa de estoque).
 
 ## Endpoints
 
 Base path: `/products` e `/api/v1/products`.
 
-### GET /products
+### GET `/products`
 
-Query params:
+Listar com paginação/filtros:
+- `name`, `category`, `minPrice`, `maxPrice`, `active`
+- `page`, `size`, `sort`
 
-- `name` (opcional): busca parcial no nome
-- `category` (opcional): categoria exata
-- `minPrice` / `maxPrice` (opcional)
-- `active` (opcional): `true|false`
-- `page`, `size`, `sort` (padrões: `0`, `10`, `id,asc`)
+Exemplo:
 
-### GET /products/{id}
+```bash
+curl http://localhost:8080/products?page=0&size=10&sort=id,asc
+```
 
-Busca por ID.
+### GET `/products/{id}`
 
-### POST /products
+```bash
+curl http://localhost:8080/products/1
+```
 
-Cria produto.
+### POST `/products`
 
-### PUT /products/{id}
+```bash
+curl -X POST http://localhost:8080/products \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name":"Arroz",
+    "description":"Arroz branco 5kg",
+    "price":29.9,
+    "category":"Mercearia",
+    "stockQuantity":30,
+    "active":true
+  }'
+```
 
-Atualiza produto.
+### PUT `/products/{id}`
 
-### PATCH /products/{id}/stock
+```bash
+curl -X PUT http://localhost:8080/products/1 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name":"Arroz Premium",
+    "description":"Arroz parboilizado 5kg",
+    "price":34.5,
+    "category":"Mercearia",
+    "stockQuantity":28,
+    "active":true
+  }'
+```
 
-Ajusta estoque via `delta`.
+### PATCH `/products/{id}/stock`
 
-### DELETE /products/{id}
+```bash
+curl -X PATCH http://localhost:8080/products/1/stock \
+  -H "Content-Type: application/json" \
+  -d '{"delta":-2}'
+```
 
-Remove produto.
+### DELETE `/products/{id}`
 
-## Erros (ApiError)
+```bash
+curl -X DELETE http://localhost:8080/products/1
+```
 
-Exemplo not found:
+## OpenAPI e erros
+
+- Swagger: `http://localhost:8080/swagger-ui.html`
+- JSON API: `http://localhost:8080/v3/api-docs`
+- Console H2: `http://localhost:8080/h2-console`
+
+Resposta de erro padrão (`ApiError`):
 
 ```json
 {
@@ -155,24 +141,20 @@ Exemplo not found:
 }
 ```
 
-Exemplo estoque insuficiente:
+## Banco de dados
 
-```json
-{
-  "timestamp": "2026-02-14T14:30:00",
-  "status": 409,
-  "code": "INSUFFICIENT_STOCK",
-  "message": "Estoque insuficiente para o produto id 1. Disponível: 2, solicitado: -5",
-  "path": "/products/1/stock",
-  "details": {}
-}
+`application.properties` está com H2 em memória:
+
+```properties
+spring.datasource.url=jdbc:h2:mem:mercadodb
 ```
 
-## Tags git
+Troque para MySQL em produção se necessário (já está documentado no próprio arquivo).
 
-Para versionar esta evolução:
+## Tags e organização para produção
 
-```bash
-git tag -a v2.1.0 -m "ui: add embedded offline marketplace interface"
-git push origin v2.1.0
-```
+- `ProductController` já usa tag OpenAPI: **Produtos** (documentação organizada no Swagger).
+- Você pode evoluir com tags de negócio:
+  - `Produtos` (CRUD)
+  - `Estoque` (ajuste de quantidades)
+  - `Saúde` (healthcheck, métricas)
