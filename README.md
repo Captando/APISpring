@@ -6,6 +6,7 @@ API REST para catálogo de produtos com foco em uso real: filtros, paginação, 
 
 - [Arquitetura](#arquitetura)
 - [Como rodar](#como-rodar)
+- [Interface local (frontend próprio)](#interface-local-frontend-próprio)
 - [Contratos](#contratos)
 - [Endpoints](#endpoints)
 - [Erros](#erros)
@@ -36,6 +37,13 @@ src/main/java/com/Captando/demo/
   exception/
     ApiError.java
     GlobalExceptionHandler.java
+
+src/main/resources/
+  application.properties
+  static/
+    index.html
+    styles.css
+    app.js
 ```
 
 ## Como rodar
@@ -51,6 +59,27 @@ URLs úteis:
 - OpenAPI: `http://localhost:8080/v3/api-docs`
 - Swagger: `http://localhost:8080/swagger-ui.html`
 - Console H2: `http://localhost:8080/h2-console`
+- Interface do app: `http://localhost:8080/`
+
+## Interface local (frontend próprio)
+
+A interface foi incluída no próprio projeto, sem dependências externas (offline):
+
+- Acesso: `http://localhost:8080/`
+
+Recursos disponíveis:
+
+- Listagem de produtos com paginação
+- Filtro por nome, categoria, preço e ativo
+- Cadastro e edição de produto
+- Exclusão de produto
+- Ajuste de estoque rápido (`+1` / `-1`) via endpoint dedicado
+- Feedback visual para sucesso/erro
+
+Como funciona:
+
+- O frontend consome a API `GET /products`, `POST /products`, `PUT /products/{id}`, `DELETE /products/{id}`, `PATCH /products/{id}/stock`
+- Todo o CSS/JS é carregado de `src/main/resources/static`
 
 ## Contratos
 
@@ -144,6 +173,6 @@ Exemplo estoque insuficiente:
 Para versionar esta evolução:
 
 ```bash
-git tag -a v2.0.0 -m "Feat: filtros e controle de estoque"
-git push origin v2.0.0
+git tag -a v2.1.0 -m "ui: add embedded offline marketplace interface"
+git push origin v2.1.0
 ```
