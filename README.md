@@ -14,22 +14,35 @@ src/main/java/com/Captando/demo/
     MarketConsoleApp.java
   controller/
     ProductController.java
+    ComandaController.java
   dto/
     ProductRequest.java
     ProductResponse.java
     StockAdjustmentRequest.java
+    CreateComandaRequest.java
+    AddComandaItemRequest.java
+    ComandaItemResponse.java
+    ComandaResponse.java
   exception/
     ApiError.java
     GlobalExceptionHandler.java
   model/
     Product.java
+    Comanda.java
+    ComandaItem.java
+    ComandaStatus.java
   repository/
     ProductRepository.java
+    ComandaRepository.java
   service/
     ProductService.java
     ProductServiceImpl.java
+    ComandaService.java
+    ComandaServiceImpl.java
     ProductNotFoundException.java
     InsufficientStockException.java
+    ComandaNotFoundException.java
+    ComandaClosedException.java
 ```
 
 ## Preparo inicial
@@ -157,6 +170,60 @@ curl -X PATCH http://localhost:8080/products/1/stock \
 
 ```bash
 curl -X DELETE http://localhost:8080/products/1
+```
+
+### Comandas
+
+Base path: `/comandas`
+
+### GET `/comandas`
+
+Listar com paginação:
+
+`GET /comandas?page=0&size=10&sort=id,desc`
+
+### POST `/comandas`
+
+Criar comanda:
+
+```bash
+curl -X POST http://localhost:8080/comandas \
+  -H "Content-Type: application/json" \
+  -d '{"customerName":"Cliente 01"}'
+```
+
+### GET `/comandas/{id}`
+
+```bash
+curl http://localhost:8080/comandas/1
+```
+
+### POST `/comandas/{id}/items`
+
+Adicionar item:
+
+```bash
+curl -X POST http://localhost:8080/comandas/1/items \
+  -H "Content-Type: application/json" \
+  -d '{"productId":1,"quantity":3}'
+```
+
+### DELETE `/comandas/{comandaId}/items/{itemId}`
+
+```bash
+curl -X DELETE http://localhost:8080/comandas/1/items/1
+```
+
+### PATCH `/comandas/{id}/close`
+
+```bash
+curl -X PATCH http://localhost:8080/comandas/1/close
+```
+
+### DELETE `/comandas/{id}`
+
+```bash
+curl -X DELETE http://localhost:8080/comandas/1
 ```
 
 ## OpenAPI e erros

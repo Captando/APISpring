@@ -2,6 +2,8 @@ package com.Captando.demo.exception;
 
 import com.Captando.demo.service.ProductNotFoundException;
 import com.Captando.demo.service.InsufficientStockException;
+import com.Captando.demo.service.ComandaNotFoundException;
+import com.Captando.demo.service.ComandaClosedException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.Map;
@@ -45,6 +47,28 @@ public class GlobalExceptionHandler {
         ApiError body = new ApiError(
                 HttpStatus.CONFLICT.value(),
                 "INSUFFICIENT_STOCK",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+
+    @ExceptionHandler(ComandaNotFoundException.class)
+    public ResponseEntity<ApiError> handleComandaNotFound(ComandaNotFoundException ex, HttpServletRequest request) {
+        ApiError body = new ApiError(
+                HttpStatus.NOT_FOUND.value(),
+                "COMANDA_NOT_FOUND",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+    @ExceptionHandler(ComandaClosedException.class)
+    public ResponseEntity<ApiError> handleComandaClosed(ComandaClosedException ex, HttpServletRequest request) {
+        ApiError body = new ApiError(
+                HttpStatus.CONFLICT.value(),
+                "COMANDA_CLOSED",
                 ex.getMessage(),
                 request.getRequestURI()
         );
