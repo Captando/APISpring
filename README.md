@@ -32,6 +32,13 @@ src/main/java/com/Captando/demo/
     InsufficientStockException.java
 ```
 
+## Preparo inicial
+
+- Java 17 instalado
+- Maven 3.9+ instalado (`mvn -v`)
+- Porta `8080` disponível
+- Dentro de `/Users/victorpcsca/Documents/APISpring`
+
 ## Como rodar a API
 
 ```bash
@@ -55,6 +62,36 @@ Também pode customizar a URL da API:
 ```bash
 mvn exec:java -Dapi.base.url=http://localhost:8080 -Dexec.mainClass=com.Captando.demo.client.MarketConsoleApp
 ```
+
+## Quick Start (3 passos)
+
+1. `cd /Users/victorpcsca/Documents/APISpring`
+2. `mvn spring-boot:run`
+3. Em outro terminal: `mvn exec:java -Dexec.mainClass=com.Captando.demo.client.MarketConsoleApp`
+
+## Exemplo rápido no CLI
+
+- Abra a API e depois o app Java.
+- Use o menu para criar (`3`) e listar (`1`) produtos.
+- Em seguida ajuste estoque (`5`) e valide com busca por id (`2`).
+
+## Troubleshooting
+
+### Erro de conexão no CLI
+
+- Confirme se a API está no ar em `http://localhost:8080`.
+- Verifique se o terminal da API mostrou a inicialização sem falhas.
+- Use `-Dapi.base.url=http://localhost:8080` se necessário.
+
+### Porta `8080` em uso
+
+- Encerre o processo atual e suba a API novamente.
+- Ou altere a porta em `application.properties` (`server.port=8081`) e passe a URL no app Java.
+
+### Erro no console H2
+
+- Acesse `http://localhost:8080/h2-console`.
+- Use JDBC `jdbc:h2:mem:mercadodb` e usuário `sa` (sem senha).
 
 ## Endpoints
 
