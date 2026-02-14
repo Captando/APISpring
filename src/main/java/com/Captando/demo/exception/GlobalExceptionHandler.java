@@ -1,6 +1,7 @@
 package com.Captando.demo.exception;
 
 import com.Captando.demo.service.ProductNotFoundException;
+import com.Captando.demo.service.InsufficientStockException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.Map;
@@ -36,6 +37,28 @@ public class GlobalExceptionHandler {
                 "Dados inválidos",
                 request.getRequestURI()
         ).withDetail("fields", errors);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    @ExceptionHandler(InsufficientStockException.class)
+    public ResponseEntity<ApiError> handleInsufficientStock(InsufficientStockException ex, HttpServletRequest request) {
+        ApiError body = new ApiError(
+                HttpStatus.CONFLICT.value(),
+                "INSUFFICIENT_STOCK",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiError> handleBusinessError(IllegalArgumentException ex, HttpServletRequest request) {
+        ApiError body = new ApiError(
+                HttpStatus.BAD_REQUEST.value(),
+                "BAD_REQUEST",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 

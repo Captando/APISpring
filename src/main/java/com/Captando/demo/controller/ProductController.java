@@ -2,10 +2,10 @@ package com.Captando.demo.controller;
 
 import com.Captando.demo.dto.ProductRequest;
 import com.Captando.demo.dto.ProductResponse;
+import com.Captando.demo.dto.StockAdjustmentRequest;
 import com.Captando.demo.service.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -17,7 +17,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/products")
+@RequestMapping({"/products", "/api/v1/products"})
+@Tag(name = "Produtos", description = "Catálogo de produtos do mercado")
 public class ProductController {
 
     private final ProductService productService;
@@ -27,9 +28,13 @@ public class ProductController {
     }
 
     @GetMapping
-    @Operation(summary = "Listar todos os produtos")
+    @Operation(summary = "Listar produtos")
     public Page<ProductResponse> getAllProducts(
             @RequestParam(required = false) String name,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(required = false) Double maxPrice,
+            @RequestParam(required = false) Boolean active,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id,asc") String sort) {
@@ -45,7 +50,7 @@ public class ProductController {
         } else {
             pageable = PageRequest.of(page, size);
         }
-        return productService.findAll(name, pageable);
+        return productService.findAll(name, category, minPrice, maxPrice, active, pageable);
     }
 
     @GetMapping("/{id}")
@@ -56,9 +61,6 @@ public class ProductController {
 
     @PostMapping
     @Operation(summary = "Criar novo produto")
-    @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Produto criado com sucesso")
-    })
     public ResponseEntity<ProductResponse> createProduct(@Valid @RequestBody ProductRequest request) {
         ProductResponse created = productService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
@@ -68,6 +70,14 @@ public class ProductController {
     @Operation(summary = "Atualizar produto")
     public ProductResponse updateProduct(@PathVariable Long id, @Valid @RequestBody ProductRequest request) {
         return productService.update(id, request);
+    }
+
+    @PatchMapping("/{id}/stock")
+    @Operation(summary = "Ajustar estoque")
+    public ProductResponse adjustStock(
+            @PathVariable Long id,
+            @Valid @RequestBody StockAdjustmentRequest request) {
+        return productService.adjustStock(id, request.getDelta());
     }
 
     @DeleteMapping("/{id}")

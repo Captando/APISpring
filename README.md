@@ -1,189 +1,119 @@
-# API de Mercado (Spring Boot 3) - Product CRUD
+# API de Mercado (Spring Boot 3) - Product API v2
 
-API REST de exemplo para gerenciar produtos de um mercado.
+API REST para catálogo de produtos com foco em uso real: filtros, paginação, controle de estoque e erro padronizado.
 
 ## Sumário
 
-- [Descrição](#descrição)
-- [Tecnologias](#tecnologias)
-- [Arquitetura e pacotes](#arquitetura-e-pacotes)
-- [Pré-requisitos](#pré-requisitos)
-- [Executando localmente](#executando-localmente)
-- [Documentação](#documentação)
-- [Modelo de dados](#modelo-de-dados)
-- [Endpoints da API](#endpoints-da-api)
-- [Paginação e filtros](#paginação-e-filtros)
-- [Validação](#validação)
-- [Exemplos de uso (JSON + curl)](#exemplos-de-uso-json--curl)
-- [Tratamento de erros](#tratamento-de-erros)
-- [Banco de dados (H2)](#banco-de-dados-h2)
-- [Trocar para MySQL](#trocar-para-mysql)
+- [Arquitetura](#arquitetura)
+- [Como rodar](#como-rodar)
+- [Contratos](#contratos)
+- [Endpoints](#endpoints)
+- [Erros](#erros)
+- [Tags git](#tags-git)
 
-## Descrição
+## Arquitetura
 
-API REST de mercado com separação de camadas e contrato de produção:
-
-- Controller: exposição de endpoints
-- Service: regras de negócio
-- Repository: acesso a dados com Spring Data JPA
-- Model/DTO: entidade e contratos de request/response
-- Exception handler: erros padronizados
-
-## Tecnologias
-
-- Java 17+
-- Spring Boot 3.3.x
-- Maven
-- Spring Web
-- Spring Data JPA
-- Validation (`spring-boot-starter-validation`)
-- H2 Database
-- springdoc-openapi (Swagger)
-
-## Arquitetura e pacotes
+Pacotes:
 
 ```text
 src/main/java/com/Captando/demo/
   DemoApplication.java
   controller/
     ProductController.java
-  model/
-    Product.java
   dto/
     ProductRequest.java
     ProductResponse.java
+    StockAdjustmentRequest.java
+  model/
+    Product.java
   repository/
     ProductRepository.java
   service/
     ProductService.java
     ProductServiceImpl.java
     ProductNotFoundException.java
+    InsufficientStockException.java
   exception/
     ApiError.java
     GlobalExceptionHandler.java
-
-src/main/resources/
-  application.properties
 ```
 
-## Pré-requisitos
-
-- Java 17
-- Maven 3.9+
-- Git
-- Chave SSH configurada para GitHub (opcional)
-
-## Executando localmente
+## Como rodar
 
 ```bash
 cd /Users/victorpcsca/Documents/APISpring
 mvn spring-boot:run
 ```
 
-A API sobe em: `http://localhost:8080`
+URLs úteis:
 
-## Documentação
+- API base: `http://localhost:8080`
+- OpenAPI: `http://localhost:8080/v3/api-docs`
+- Swagger: `http://localhost:8080/swagger-ui.html`
+- Console H2: `http://localhost:8080/h2-console`
 
-- Swagger UI: `http://localhost:8080/swagger-ui.html`
-- OpenAPI JSON: `http://localhost:8080/v3/api-docs`
+## Contratos
 
-## Modelo de dados
-
-`Product`:
-
-```json
-{
-  "id": 1,
-  "name": "Arroz",
-  "description": "Arroz branco 5kg",
-  "price": 29.9
-}
-```
-
-Contrato de request (`POST` / `PUT`):
+`ProductRequest`:
 
 ```json
 {
   "name": "Arroz",
   "description": "Arroz branco 5kg",
-  "price": 29.9
+  "price": 29.9,
+  "category": "Mercearia",
+  "stockQuantity": 30,
+  "active": true
 }
 ```
 
-## Endpoints da API
+`ProductResponse` inclui os mesmos campos + `id`.
 
-Base path: `/products`
+`StockAdjustmentRequest`:
 
-- `GET /products`: listar com paginação/filtro/ordenação
-- `GET /products/{id}`: buscar por id
-- `POST /products`: criar
-- `PUT /products/{id}`: atualizar
-- `DELETE /products/{id}`: remover
-
-## Paginação e filtros
-
-`GET /products` aceita query params:
-
-- `name`: busca parcial por nome (`name=arroz`)
-- `page`: página (padrão `0`)
-- `size`: itens por página (padrão `10`)
-- `sort`: ordenação (`id,asc`, `price,desc`)
-
-Exemplo:
-
-```bash
-curl -X GET "http://localhost:8080/products?name=arroz&page=0&size=5&sort=price,desc"
+```json
+{ "delta": 5 }
 ```
 
-## Validação
+Pode ser positivo (entrada) ou negativo (baixa de estoque).
 
-`ProductRequest` valida:
+## Endpoints
 
-- `name`: obrigatório, 2 a 120 caracteres
-- `price`: obrigatório, > 0
-- `description`: opcional, até 500 caracteres
+Base path: `/products` e `/api/v1/products`.
 
-## Exemplos de uso (JSON + curl)
+### GET /products
 
-### Criar
+Query params:
 
-```bash
-curl -X POST http://localhost:8080/products \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Feijão","description":"Feijão carioca 1kg","price":11.5}'
-```
+- `name` (opcional): busca parcial no nome
+- `category` (opcional): categoria exata
+- `minPrice` / `maxPrice` (opcional)
+- `active` (opcional): `true|false`
+- `page`, `size`, `sort` (padrões: `0`, `10`, `id,asc`)
 
-### Listar
+### GET /products/{id}
 
-```bash
-curl -X GET http://localhost:8080/products
-```
+Busca por ID.
 
-### Buscar por id
+### POST /products
 
-```bash
-curl -X GET http://localhost:8080/products/1
-```
+Cria produto.
 
-### Atualizar
+### PUT /products/{id}
 
-```bash
-curl -X PUT http://localhost:8080/products/1 \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Feijão Premium","description":"Feijão carioca 1kg","price":12.9}'
-```
+Atualiza produto.
 
-### Deletar
+### PATCH /products/{id}/stock
 
-```bash
-curl -X DELETE http://localhost:8080/products/1
-```
+Ajusta estoque via `delta`.
 
-Retorno esperado: `204 No Content`.
+### DELETE /products/{id}
 
-## Tratamento de erros
+Remove produto.
 
-Formato padronizado (`ApiError`):
+## Erros (ApiError)
+
+Exemplo not found:
 
 ```json
 {
@@ -196,52 +126,24 @@ Formato padronizado (`ApiError`):
 }
 ```
 
-Erro de validação:
+Exemplo estoque insuficiente:
 
 ```json
 {
   "timestamp": "2026-02-14T14:30:00",
-  "status": 400,
-  "code": "INVALID_PAYLOAD",
-  "message": "Dados inválidos",
-  "path": "/products",
-  "details": {
-    "fields": {
-      "name": "name é obrigatório",
-      "price": "price deve ser maior que zero"
-    }
-  }
+  "status": 409,
+  "code": "INSUFFICIENT_STOCK",
+  "message": "Estoque insuficiente para o produto id 1. Disponível: 2, solicitado: -5",
+  "path": "/products/1/stock",
+  "details": {}
 }
 ```
 
-Erro interno: `500` com `code: INTERNAL_ERROR`.
+## Tags git
 
-## Banco de dados (H2)
+Para versionar esta evolução:
 
-`application.properties` usa:
-
-```properties
-spring.datasource.url=jdbc:h2:mem:mercadodb
-spring.datasource.driver-class-name=org.h2.Driver
-spring.datasource.username=sa
-spring.datasource.password=
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=true
-spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
-spring.h2.console.enabled=true
-spring.h2.console.path=/h2-console
-```
-
-Console: `http://localhost:8080/h2-console`
-
-## Trocar para MySQL
-
-Comente/ajuste no `application.properties`:
-
-```properties
-spring.datasource.url=jdbc:mysql://localhost:3306/mercado_db?useSSL=false&serverTimezone=UTC
-spring.datasource.username=root
-spring.datasource.password=senha
-spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
-spring.jpa.database-platform=org.hibernate.dialect.MySQL8Dialect
+```bash
+git tag -a v2.0.0 -m "Feat: filtros e controle de estoque"
+git push origin v2.0.0
 ```
