@@ -1,14 +1,19 @@
 package com.Captando.demo.service;
 
 import com.Captando.demo.dto.AddComandaItemRequest;
+import com.Captando.demo.dto.ApplyComandaDiscountRequest;
+import com.Captando.demo.dto.ComandaCheckoutRequest;
 import com.Captando.demo.dto.ComandaItemResponse;
 import com.Captando.demo.dto.ComandaResponse;
 import com.Captando.demo.dto.CreateComandaRequest;
 import com.Captando.demo.model.Comanda;
 import com.Captando.demo.model.ComandaItem;
 import com.Captando.demo.model.ComandaStatus;
+import com.Captando.demo.model.Customer;
+import com.Captando.demo.model.PaymentMethod;
 import com.Captando.demo.model.Product;
 import com.Captando.demo.repository.ComandaRepository;
+import com.Captando.demo.repository.CustomerRepository;
 import com.Captando.demo.repository.ProductRepository;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -22,10 +27,14 @@ public class ComandaServiceImpl implements ComandaService {
 
     private final ComandaRepository comandaRepository;
     private final ProductRepository productRepository;
+    private final CustomerRepository customerRepository;
 
-    public ComandaServiceImpl(ComandaRepository comandaRepository, ProductRepository productRepository) {
+    public ComandaServiceImpl(ComandaRepository comandaRepository,
+                              ProductRepository productRepository,
+                              CustomerRepository customerRepository) {
         this.comandaRepository = comandaRepository;
         this.productRepository = productRepository;
+        this.customerRepository = customerRepository;
     }
 
     @Override
@@ -45,16 +54,18 @@ public class ComandaServiceImpl implements ComandaService {
     @Transactional
     public ComandaResponse create(CreateComandaRequest request) {
         Comanda comanda = new Comanda(request.getCustomerName());
+        if (request.getCustomerId() != null) {
+            Customer customer = customerRepository.findById(request.getCustomerId())
+                    .orElseThrow(() -> new CustomerNotFoundException(request.getCustomerId()));
+            comanda.setCustomer(customer);
+        }
         return toResponse(comandaRepository.save(comanda));
     }
 
     @Override
     @Transactional
     public ComandaResponse addItem(Long id, AddComandaItemRequest request) {
-        Comanda comanda = comandaRepository.findById(id)
-                .orElseThrow(() -> new ComandaNotFoundException(id));
-        ensureOpen(comanda);
-
+        Comanda comanda = findOpenComanda(id);
         Product product = productRepository.findById(request.getProductId())
                 .orElseThrow(() -> new ProductNotFoundException(request.getProductId()));
 
@@ -69,36 +80,64 @@ public class ComandaServiceImpl implements ComandaService {
             ComandaItem item = new ComandaItem(product, request.getQuantity(), product.getPrice());
             comanda.addItem(item);
         }
-
         return toResponse(comandaRepository.save(comanda));
     }
 
     @Override
     @Transactional
     public ComandaResponse removeItem(Long comandaId, Long itemId) {
-        Comanda comanda = comandaRepository.findById(comandaId)
-                .orElseThrow(() -> new ComandaNotFoundException(comandaId));
-        ensureOpen(comanda);
-
+        Comanda comanda = findOpenComanda(comandaId);
         ComandaItem item = comanda.getItems().stream()
                 .filter(i -> i.getId().equals(itemId))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Item não encontrado na comanda: " + itemId));
-
         comanda.removeItem(item);
         return toResponse(comandaRepository.save(comanda));
     }
 
     @Override
     @Transactional
-    public ComandaResponse close(Long id) {
-        Comanda comanda = comandaRepository.findById(id)
-                .orElseThrow(() -> new ComandaNotFoundException(id));
-        ensureOpen(comanda);
+    public ComandaResponse applyDiscount(Long id, ApplyComandaDiscountRequest request) {
+        Comanda comanda = findOpenComanda(id);
+        comanda.setDiscountPercent(request.getDiscountPercent());
+        comanda.setDiscountAmount(request.getDiscountAmount());
+        return toResponse(comandaRepository.save(comanda));
+    }
 
+    @Override
+    @Transactional
+    public ComandaResponse checkout(Long id, ComandaCheckoutRequest request) {
+        Comanda comanda = findOpenComanda(id);
+        comanda.setPaymentMethod(request.getPaymentMethod());
         comanda.setStatus(ComandaStatus.FECHADA);
         comanda.setClosedAt(LocalDateTime.now());
         return toResponse(comandaRepository.save(comanda));
+    }
+
+    @Override
+    @Transactional
+    public ComandaResponse close(Long id) {
+        Comanda comanda = findOpenComanda(id);
+        if (comanda.getPaymentMethod() == null) {
+            comanda.setPaymentMethod(PaymentMethod.CASH);
+        }
+        comanda.setStatus(ComandaStatus.FECHADA);
+        comanda.setClosedAt(LocalDateTime.now());
+        return toResponse(comandaRepository.save(comanda));
+    }
+
+    @Override
+    @Transactional
+    public ComandaResponse setPaymentMethod(Long id, PaymentMethod paymentMethod) {
+        Comanda comanda = findOpenComanda(id);
+        comanda.setPaymentMethod(paymentMethod);
+        return toResponse(comandaRepository.save(comanda));
+    }
+
+    @Override
+    public List<String> availablePaymentMethods() {
+        return List.of(PaymentMethod.values())
+                .stream().map(Enum::name).toList();
     }
 
     @Override
@@ -107,6 +146,13 @@ public class ComandaServiceImpl implements ComandaService {
         Comanda comanda = comandaRepository.findById(id)
                 .orElseThrow(() -> new ComandaNotFoundException(id));
         comandaRepository.delete(comanda);
+    }
+
+    private Comanda findOpenComanda(Long id) {
+        Comanda comanda = comandaRepository.findById(id)
+                .orElseThrow(() -> new ComandaNotFoundException(id));
+        ensureOpen(comanda);
+        return comanda;
     }
 
     private void ensureOpen(Comanda comanda) {
@@ -130,10 +176,15 @@ public class ComandaServiceImpl implements ComandaService {
         return new ComandaResponse(
                 comanda.getId(),
                 comanda.getCustomerName(),
+                comanda.getCustomer() != null ? comanda.getCustomer().getId() : null,
                 comanda.getStatus().name(),
                 comanda.getCreatedAt(),
                 comanda.getClosedAt(),
+                comanda.getSubtotal(),
+                comanda.getDiscountPercent(),
+                comanda.getDiscountAmount(),
                 comanda.getTotal(),
+                comanda.getPaymentMethod() != null ? comanda.getPaymentMethod().name() : null,
                 itemDtos
         );
     }

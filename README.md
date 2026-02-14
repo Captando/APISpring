@@ -172,6 +172,28 @@ curl -X PATCH http://localhost:8080/products/1/stock \
 curl -X DELETE http://localhost:8080/products/1
 ```
 
+### Clientes
+
+#### GET `/clients`
+
+Listagem paginada de clientes (`/clients?page=0&size=10&sort=id,asc`).
+
+#### POST `/clients`
+
+```bash
+curl -X POST http://localhost:8080/clients \
+  -H "Content-Type: application/json" \
+  -d '{"name":"João da Silva","email":"joao@email.com","phone":"11999990000"}'
+```
+
+#### PUT `/clients/{id}`
+
+Atualiza nome/email/telefone.
+
+#### DELETE `/clients/{id}`
+
+Remove cliente.
+
 ### Comandas
 
 Base path: `/comandas`
@@ -198,6 +220,35 @@ curl -X POST http://localhost:8080/comandas \
 curl http://localhost:8080/comandas/1
 ```
 
+### PATCH `/comandas/{id}/discount`
+
+Aplicar desconto:
+
+```bash
+curl -X PATCH http://localhost:8080/comandas/1/discount \
+  -H "Content-Type: application/json" \
+  -d '{"discountPercent":10,"discountAmount":0}'
+```
+
+### PATCH `/comandas/{id}/payment`
+
+Escolher forma de pagamento:
+
+```bash
+curl -X PATCH "http://localhost:8080/comandas/1/payment?paymentMethod=PIX"
+```
+
+### GET `/comandas/payment-methods`
+
+Lista de métodos aceitos:
+
+- CASH
+- PIX
+- DEBIT_CARD
+- CREDIT_CARD
+- FOOD_VOUCHER
+- TRANSFER
+
 ### POST `/comandas/{id}/items`
 
 Adicionar item:
@@ -206,6 +257,16 @@ Adicionar item:
 curl -X POST http://localhost:8080/comandas/1/items \
   -H "Content-Type: application/json" \
   -d '{"productId":1,"quantity":3}'
+```
+
+### PATCH `/comandas/{id}/checkout`
+
+Fecha pagando na forma selecionada:
+
+```bash
+curl -X PATCH http://localhost:8080/comandas/1/checkout \
+  -H "Content-Type: application/json" \
+  -d '{"paymentMethod":"PIX"}'
 ```
 
 ### DELETE `/comandas/{comandaId}/items/{itemId}`
@@ -224,6 +285,23 @@ curl -X PATCH http://localhost:8080/comandas/1/close
 
 ```bash
 curl -X DELETE http://localhost:8080/comandas/1
+```
+
+### Carrinho (alias para comanda)
+
+Base path: `/carts`
+
+- `POST /carts` abre carrinho (mesma estrutura de comanda)
+- `POST /carts/{id}/items` adiciona item
+- `DELETE /carts/{id}/items/{itemId}` remove item
+- `PATCH /carts/{id}/checkout` finaliza carrinho
+
+Exemplo:
+
+```bash
+curl -X POST http://localhost:8080/carts -H "Content-Type: application/json" -d '{"customerName":"Cliente 02","customerId":1}'
+curl -X POST http://localhost:8080/carts/1/items -H "Content-Type: application/json" -d '{"productId":1,"quantity":2}'
+curl -X PATCH http://localhost:8080/carts/1/checkout -H "Content-Type: application/json" -d '{"paymentMethod":"CASH"}'
 ```
 
 ## OpenAPI e erros

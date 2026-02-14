@@ -7,6 +7,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
@@ -26,9 +27,14 @@ public class Comanda {
 
     @Enumerated(EnumType.STRING)
     private ComandaStatus status = ComandaStatus.ABERTA;
+    @ManyToOne
+    private Customer customer;
 
     private LocalDateTime createdAt;
     private LocalDateTime closedAt;
+    private Double discountPercent = 0.0;
+    private Double discountAmount = 0.0;
+    private PaymentMethod paymentMethod;
 
     @OneToMany(mappedBy = "comanda", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ComandaItem> items = new ArrayList<>();
@@ -65,6 +71,14 @@ public class Comanda {
         this.status = status;
     }
 
+    public Customer getCustomer() {
+        return customer;
+    }
+
+    public void setCustomer(Customer customer) {
+        this.customer = customer;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -79,6 +93,30 @@ public class Comanda {
 
     public void setClosedAt(LocalDateTime closedAt) {
         this.closedAt = closedAt;
+    }
+
+    public Double getDiscountPercent() {
+        return discountPercent;
+    }
+
+    public void setDiscountPercent(Double discountPercent) {
+        this.discountPercent = discountPercent == null ? 0.0 : discountPercent;
+    }
+
+    public Double getDiscountAmount() {
+        return discountAmount;
+    }
+
+    public void setDiscountAmount(Double discountAmount) {
+        this.discountAmount = discountAmount == null ? 0.0 : discountAmount;
+    }
+
+    public PaymentMethod getPaymentMethod() {
+        return paymentMethod;
+    }
+
+    public void setPaymentMethod(PaymentMethod paymentMethod) {
+        this.paymentMethod = paymentMethod;
     }
 
     public List<ComandaItem> getItems() {
@@ -100,9 +138,16 @@ public class Comanda {
     }
 
     public double getTotal() {
+        double sub = items.stream()
+                .mapToDouble(ComandaItem::getLineTotal)
+                .sum();
+        double withPercentageDiscount = sub - (sub * ((discountPercent == null ? 0.0 : discountPercent) / 100.0));
+        return Math.max(0.0, withPercentageDiscount - (discountAmount == null ? 0.0 : discountAmount));
+    }
+
+    public double getSubtotal() {
         return items.stream()
                 .mapToDouble(ComandaItem::getLineTotal)
                 .sum();
     }
 }
-

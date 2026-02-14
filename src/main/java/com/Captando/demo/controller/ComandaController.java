@@ -1,8 +1,11 @@
 package com.Captando.demo.controller;
 
 import com.Captando.demo.dto.AddComandaItemRequest;
+import com.Captando.demo.dto.ApplyComandaDiscountRequest;
+import com.Captando.demo.dto.ComandaCheckoutRequest;
 import com.Captando.demo.dto.ComandaResponse;
 import com.Captando.demo.dto.CreateComandaRequest;
+import com.Captando.demo.model.PaymentMethod;
 import com.Captando.demo.service.ComandaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -14,6 +17,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/comandas")
@@ -63,15 +68,38 @@ public class ComandaController {
 
     @DeleteMapping("/{comandaId}/items/{itemId}")
     @Operation(summary = "Remover item da comanda")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void removeItem(@PathVariable Long comandaId, @PathVariable Long itemId) {
-        comandaService.removeItem(comandaId, itemId);
+    public ComandaResponse removeItem(@PathVariable Long comandaId, @PathVariable Long itemId) {
+        return comandaService.removeItem(comandaId, itemId);
+    }
+
+    @PatchMapping("/{id}/discount")
+    @Operation(summary = "Aplicar desconto na comanda")
+    public ComandaResponse applyDiscount(@PathVariable Long id, @Valid @RequestBody ApplyComandaDiscountRequest request) {
+        return comandaService.applyDiscount(id, request);
+    }
+
+    @PatchMapping("/{id}/payment")
+    @Operation(summary = "Definir método de pagamento da comanda")
+    public ComandaResponse setPayment(@PathVariable Long id, @RequestParam PaymentMethod paymentMethod) {
+        return comandaService.setPaymentMethod(id, paymentMethod);
+    }
+
+    @PatchMapping("/{id}/checkout")
+    @Operation(summary = "Fechar comanda com pagamento")
+    public ComandaResponse checkout(@PathVariable Long id, @Valid @RequestBody ComandaCheckoutRequest request) {
+        return comandaService.checkout(id, request);
     }
 
     @PatchMapping("/{id}/close")
     @Operation(summary = "Fechar comanda")
     public ComandaResponse close(@PathVariable Long id) {
         return comandaService.close(id);
+    }
+
+    @GetMapping("/payment-methods")
+    @Operation(summary = "Opções de pagamento")
+    public List<String> paymentMethods() {
+        return comandaService.availablePaymentMethods();
     }
 
     @DeleteMapping("/{id}")

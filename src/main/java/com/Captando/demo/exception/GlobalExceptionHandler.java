@@ -4,6 +4,7 @@ import com.Captando.demo.service.ProductNotFoundException;
 import com.Captando.demo.service.InsufficientStockException;
 import com.Captando.demo.service.ComandaNotFoundException;
 import com.Captando.demo.service.ComandaClosedException;
+import com.Captando.demo.service.CustomerNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.Map;
@@ -73,6 +74,17 @@ public class GlobalExceptionHandler {
                 request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+
+    @ExceptionHandler(CustomerNotFoundException.class)
+    public ResponseEntity<ApiError> handleCustomerNotFound(CustomerNotFoundException ex, HttpServletRequest request) {
+        ApiError body = new ApiError(
+                HttpStatus.NOT_FOUND.value(),
+                "CUSTOMER_NOT_FOUND",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
